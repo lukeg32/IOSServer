@@ -20,7 +20,7 @@ add_executable(IOSServer
                 main.hpp
                 util/networking/TCP.hpp
                 util/networking/TCP.cpp
-                util/networking/networkingConfig.hpp
+                util/networking/networkConfig.hpp
                 util/documentor.cpp
                 util/documentor.hpp
                 util/getMusic.cpp

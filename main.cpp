@@ -17,7 +17,7 @@
 #include <sys/types.h>
 #include <ifaddrs.h>
 
-#include "util/networking/networkingConfig.hpp"
+#include "util/networking/networkConfig.hpp"
 #include "util/networking/TCP.hpp"
 
 using namespace std;
