@@ -14,6 +14,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 project(IOSServer LANGUAGES CXX)
 
+find_package(OpenAL REQUIRED)
 
 add_executable(IOSServer
                 main.cpp
@@ -33,3 +34,6 @@ target_include_directories(IOSServer PRIVATE
                           "${PROJECT_BINARY_DIR}"
                           "${PROJECT_SOURCE_DIR}/util"
                           )
+
+target_include_directories(IOSServer PUBLIC ${OpenAL_INCLUDE_DIR})
+target_link_libraries(IOSServer ${OPENAL_LIBRARY})
