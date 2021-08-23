@@ -42,7 +42,7 @@ class TCP {
          * the corresponding buffer
          * for raw data, moves data to the rawData buffer in blocks of size equal to _sizeOfRawBlocks
          */
-        int getFromPoll(bool waitForFill);
+        int getFromPoll();
 
         // give other classes access to the buffers
         struct generalTCP& getInBuf();

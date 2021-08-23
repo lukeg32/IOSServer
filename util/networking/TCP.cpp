@@ -65,7 +65,7 @@ void TCP::sendPTL(int protocol)
  * the corresponding buffer
  * for raw data, moves data to the rawData buffer in blocks of size equal to _sizeOfRawBlocks
  */
-int TCP::getFromPoll(bool waitForFill)
+int TCP::getFromPoll()
 {
     int peek;
     int len;
@@ -99,61 +99,59 @@ int TCP::getFromPoll(bool waitForFill)
             return POLLBAD;
         }
 
-        if (waitForFill)
+        // based off of the enum we do something different with the incoming data
+        switch (_expectingType)
         {
-            switch (_expectingType)
-            {
-                case recievingInfoTCP:
-                    if (peek < packSizeInfo)
-                    {
-                        _infoRecieve.protocol = -1;
-                    }
-                    else
-                    {
-                        len = recv(_theSock, &_infoRecieve, packSizeInfo, 0);
+            case recievingInfoTCP:
+                if (peek < packSizeInfo)
+                {
+                    _infoRecieve.protocol = -1;
+                }
+                else
+                {
+                    len = recv(_theSock, &_infoRecieve, packSizeInfo, 0);
 
-                        if (len != packSizeInfo)
-                        {
-                            printf("len %d vs _packSize %d\n", len, packSizeInfo);
-                            perror("Oh no:\n");
-                        }
-                    }
-                    break;
-                case recievingGeneralTCP:
-                    if (peek < packSizeGeneral)
+                    if (len != packSizeInfo)
                     {
-                        _toRecieve.protocol = -1;
+                        printf("len %d vs packSizeInfo %d\n", len, packSizeInfo);
+                        perror("Oh no:\n");
                     }
-                    else
-                    {
-                        len = recv(_theSock, &_toRecieve, packSizeGeneral, 0);
+                }
+                break;
+            case recievingGeneralTCP:
+                if (peek < packSizeGeneral)
+                {
+                    _toRecieve.protocol = -1;
+                }
+                else
+                {
+                    len = recv(_theSock, &_toRecieve, packSizeGeneral, 0);
 
-                        if (len != packSizeGeneral)
-                        {
-                            printf("len %d vs _packSize %d\n", len, packSizeGeneral);
-                            perror("Oh no:\n");
-                        }
-                    }
-                    break;
-                case recievingRaw:
-                    if (peek < _sizeOfRawBlocks)
+                    if (len != packSizeGeneral)
                     {
-                        // wait
+                        printf("len %d vs packSizeGeneral %d\n", len, packSizeGeneral);
+                        perror("Oh no:\n");
                     }
-                    else
-                    {
-                        len = recv(_theSock, &_rawDataIn, TCP_BUF, 0);
+                }
+                break;
+            case recievingRaw:
+                if (peek < _sizeOfRawBlocks)
+                {
+                    // wait for more data
+                }
+                else
+                {
+                    len = recv(_theSock, &_rawDataIn, TCP_BUF, 0);
 
-                        if (len != TCP_BUF)
-                        {
-                            printf("len %d vs _packSize %d\n", len, packSizeGeneral);
-                            perror("Oh no:\n");
-                        }
+                    if (len != TCP_BUF)
+                    {
+                        printf("len %d vs _sizeOfRawBlocks %d\n", len, _sizeOfRawBlocks);
+                        perror("Oh no:\n");
                     }
-                    break;
-                default:
-                    cout << "bad switch\n";
-            }
+                }
+                break;
+            default:
+                cout << "bad switch\n";
         }
     }
 
