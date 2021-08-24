@@ -13,8 +13,12 @@
 #define POLLOK 0
 #define POLLHUNGUP 1
 #define POLLBAD -1
+#define POLLNOTFULL 2
 
 #define PORT  12345
+#define PORTTCP_UPLOAD  54321
+#define PORTTCP_DOWNLOAD  54322
+#define PORTTCP_MUSIC  54323
 
 #define PONG 1
 #define PING 2
@@ -32,6 +36,8 @@
 #define SONGHEADER 14
 #define ENDSONG 15
 #define SENDINGFILEHEADER 16
+
+#define SONGPATH "songs"
 
 // a struct for sending info only
 struct infoTCP

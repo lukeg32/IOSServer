@@ -33,9 +33,9 @@ void TCP::sendPTLData(int protocol)
  * for sending raw data messages
  * @param data the raw data that we are to send
  */
-void TCP::sendRawData(char& data, int len)
+void TCP::sendRawData(char* data, int len)
 {
-    if (send(_theSock, (const void*)&data, len, 0) < 0)
+    if (send(_theSock, (const void*)data, len, 0) < 0)
     {
         perror("send wackiness");
     }
@@ -71,6 +71,8 @@ int TCP::getFromPoll()
     int len;
     int packSizeInfo = sizeof(_infoRecieve);
     int packSizeGeneral = sizeof(_toRecieve);
+    int pollReturnValue = POLLBAD;
+
     if (poll(&_pfd, 1, 1000) > 0)
     {
         if (_theSock < 0)
@@ -78,84 +80,108 @@ int TCP::getFromPoll()
             printf("Socket: %d\n", _theSock);
             exit(-1);
         }
-        peek = recv(_theSock, nullptr, 0, MSG_PEEK | MSG_DONTWAIT);
 
-        // they broke the connection
-        if (peek == 0)
+        // check the events
+        if (_pfd.revents != 0 )
         {
-            printf("They hung up\n");
-            exit(1);
+            if (_pfd.revents & POLLIN)
+            {
+                // there is data to recieve
+                peek = recv(_theSock, &_rawDataIn, TCP_BUF, MSG_PEEK);
 
-            return POLLHUNGUP;
-        }
+                // bad peek
+                if (peek < 0)
+                {
+                    printf("error: %d\n", peek);
+                    printf("socket: %d\n", _theSock);
+                    perror("1msg error");
+                    exit(-1);
+                    return POLLBAD;
+                }
 
-        // error
-        if (peek < 0)
-        {
-            printf("error: %d\n", peek);
-            printf("socket: %d\n", _theSock);
-            perror("1msg error");
-            exit(-1);
-            return POLLBAD;
-        }
+                // based off of the enum we do something different with the incoming data
+                switch (_expectingType)
+                {
+                    case recievingInfoTCP:
+                        if (peek < packSizeInfo)
+                        {
+                            _infoRecieve.protocol = -1;
+                            pollReturnValue = POLLNOTFULL;
+                        }
+                        else
+                        {
+                            len = recv(_theSock, &_infoRecieve, packSizeInfo, 0);
+                            pollReturnValue = POLLOK;
 
-        // based off of the enum we do something different with the incoming data
-        switch (_expectingType)
-        {
-            case recievingInfoTCP:
-                if (peek < packSizeInfo)
-                {
-                    _infoRecieve.protocol = -1;
-                }
-                else
-                {
-                    len = recv(_theSock, &_infoRecieve, packSizeInfo, 0);
+                            if (len != packSizeInfo)
+                            {
+                                printf("len %d vs packSizeInfo %d\n", len, packSizeInfo);
+                                perror("Oh no:\n");
+                            }
+                        }
+                        break;
+                    case recievingGeneralTCP:
+                        if (peek < packSizeGeneral)
+                        {
+                            _toRecieve.protocol = -1;
+                            pollReturnValue = POLLNOTFULL;
+                        }
+                        else
+                        {
+                            len = recv(_theSock, &_toRecieve, packSizeGeneral, 0);
+                            pollReturnValue = POLLOK;
 
-                    if (len != packSizeInfo)
-                    {
-                        printf("len %d vs packSizeInfo %d\n", len, packSizeInfo);
-                        perror("Oh no:\n");
-                    }
-                }
-                break;
-            case recievingGeneralTCP:
-                if (peek < packSizeGeneral)
-                {
-                    _toRecieve.protocol = -1;
-                }
-                else
-                {
-                    len = recv(_theSock, &_toRecieve, packSizeGeneral, 0);
+                            if (len != packSizeGeneral)
+                            {
+                                printf("len %d vs packSizeGeneral %d\n", len, packSizeGeneral);
+                                perror("Oh no:\n");
+                            }
+                        }
+                        break;
+                    case recievingRaw:
+                        if (peek < _sizeOfRawBlocks)
+                        {
+                            // wait for more data
+                            pollReturnValue = POLLNOTFULL;
+                        }
+                        else
+                        {
+                            len = recv(_theSock, &_rawDataIn, TCP_BUF, 0);
+                            _inSize = peek;
+                            pollReturnValue = POLLOK;
 
-                    if (len != packSizeGeneral)
-                    {
-                        printf("len %d vs packSizeGeneral %d\n", len, packSizeGeneral);
-                        perror("Oh no:\n");
-                    }
+                            if (len != _sizeOfRawBlocks)
+                            {
+                                // not necessarly bad thing
+                                printf("len %d vs _sizeOfRawBlocks %d\n", len, _sizeOfRawBlocks);
+                                perror("Oh no:");
+                            }
+                        }
+                        break;
+                    default:
+                        cout << "bad switch\n";
                 }
-                break;
-            case recievingRaw:
-                if (peek < _sizeOfRawBlocks)
-                {
-                    // wait for more data
-                }
-                else
-                {
-                    len = recv(_theSock, &_rawDataIn, TCP_BUF, 0);
+            }
+            else if (_pfd.revents & POLLHUP)
+            {
+                // they broke the connection
+                printf("They hung up\n");
+                exit(1);
 
-                    if (len != TCP_BUF)
-                    {
-                        printf("len %d vs _sizeOfRawBlocks %d\n", len, _sizeOfRawBlocks);
-                        perror("Oh no:\n");
-                    }
-                }
-                break;
-            default:
-                cout << "bad switch\n";
+                return POLLHUNGUP;
+            }
+            else
+            {
+                // error
+                printf("socket: %d\n", _theSock);
+                perror("1msg error");
+                exit(-1);
+                return POLLBAD;
+            }
         }
     }
 
-    return POLLOK;
+    return pollReturnValue;
 }
 
 
@@ -189,9 +215,9 @@ struct infoTCP& TCP::getInfoOutBuf()
 }
 
 
-char& TCP::getRawInBuf()
+char* TCP::getRawInBuf()
 {
-    return *_rawDataIn;
+    return _rawDataIn;
 }
 
 
@@ -209,6 +235,30 @@ int TCP::getRawOutBufSize()
 {
     return _outSize;
 }
+
+// switch what we are expecting
+void TCP::expectInfo()
+{
+    _expectingType = recievingInfoTCP;
+}
+
+void TCP::expectGeneral()
+{
+    _expectingType = recievingGeneralTCP;
+}
+
+void TCP::expectRaw()
+{
+    _expectingType = recievingRaw;
+}
+
+
+void TCP::closeConnection()
+{
+    if (close(_theSock) == -1)
+        perror("Closing socket:");
+}
+
 
 /**
  * the constructor for the tcp obj

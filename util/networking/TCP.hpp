@@ -26,7 +26,7 @@ class TCP {
         /**
          * for sending raw data messages
          */
-        void sendRawData(char& data, int len);
+        void sendRawData(char* data, int len);
 
 
         /**
@@ -49,10 +49,17 @@ class TCP {
         struct generalTCP& getOutBuf();
         struct infoTCP& getInfoInBuf();
         struct infoTCP& getInfoOutBuf();
-        char& getRawInBuf();
+        char* getRawInBuf();
         char& getRawOutBuf();
         int getRawInBufSize();
         int getRawOutBufSize();
+
+        // switch what we are expecting
+        void expectInfo();
+        void expectGeneral();
+        void expectRaw();
+
+        void closeConnection();
 
         TCP(int sock, int rawDataBlockSize);
 

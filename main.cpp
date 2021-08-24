@@ -19,6 +19,7 @@
 
 #include "util/networking/networkConfig.hpp"
 #include "util/networking/TCP.hpp"
+#include "util/networking/Listeners.hpp"
 
 using namespace std;
 
@@ -28,7 +29,10 @@ int main()
 {
     if (test_nw)
     {
-        printf("asdf\n");
+        printf("Starting\n");
+
+        MusicListener musicProvider;
+        musicProvider.serveClients();
         return 0;
     }
 
