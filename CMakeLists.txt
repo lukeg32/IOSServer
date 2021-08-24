@@ -21,7 +21,15 @@ add_executable(IOSServer
                 main.hpp
                 util/networking/TCP.hpp
                 util/networking/TCP.cpp
+                util/networking/Listeners.cpp
+                util/networking/Listeners.hpp
+                util/networking/TCPListener.cpp
+                util/networking/TCPListener.hpp
+                util/networking/MusicSend.cpp
+                util/networking/MusicSend.hpp
+
                 util/networking/networkConfig.hpp
+
                 util/documentor.cpp
                 util/documentor.hpp
                 util/getMusic.cpp
